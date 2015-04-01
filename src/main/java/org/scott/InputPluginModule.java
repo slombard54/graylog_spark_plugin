@@ -1,20 +1,23 @@
 package org.scott;
 
-import org.apache.spark.streaming.Duration;
-import org.apache.spark.streaming.Durations;
+import com.google.inject.TypeLiteral;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
-import org.apache.spark.SparkContext;
+import org.graylog2.plugin.Message;
 import org.graylog2.plugin.PluginConfigBean;
 import org.graylog2.plugin.PluginModule;
+import org.scott.spark.RecieverBufferProvider;
+import org.scott.spark.SparkDriverService;
+import org.scott.spark.SparkProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.spark.*;
-import org.apache.spark.streaming.api.java.*;
-
-import java.util.Arrays;
+import java.io.File;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * Extend the PluginModule abstract class here to add you plugin to the system.
@@ -51,14 +54,48 @@ public class InputPluginModule extends PluginModule {
          *
          * addConfigBeans();
          */
+        try {
+            addPath("./plugin/inputplugin-1.0.0-SNAPSHOT.jar");
+        }
+        catch (Exception e) {
+            LOG.error("Exception: {}",e);
+        }
+
+
+        ClassLoader cl = ClassLoader.getSystemClassLoader();
+
+        URL[] urls = ((URLClassLoader)cl).getURLs();
+
+        for(URL url: urls){
+            LOG.info("Jar files: {}",(url.getFile()));
+        }
+
+        //LOG.info("test {}", Arrays.toString(Thread.currentThread().getStackTrace()));
+
+        //SparkConf conf;
+        //JavaStreamingContext ssc;
 
         //SparkContext con = new SparkContext("local[4]","graylog","~/Spark-1.2.1/");
-        SparkConf conf = new SparkConf().setAppName("graylog").setMaster("local[*]");
-        JavaStreamingContext ssc = new JavaStreamingContext(conf, Durations.seconds(1));
+        //conf = new SparkConf().setAppName("graylog").setMaster("local[*]");
+        //ssc = new JavaStreamingContext(conf, Durations.seconds(1));
+        //ssc.receiverStream()
+        //JavaDStream<String> test = ssc.socketTextStream("localhost",2020);
+        //Receiver<String> a;
+        bind(JavaStreamingContext.class).toProvider(SparkProvider.class);
+        bind(new TypeLiteral<ArrayBlockingQueue<Message>>(){}).toProvider(RecieverBufferProvider.class);
 
-
-        LOG.info("test {}", Arrays.toString(Thread.currentThread().getStackTrace()));
-        addTransport("Input-transport",InputUDPTransport.class);
+        addInitializer(SparkDriverService.class);
         addMessageInput(InputPlugin.class);
+        addMessageOutput(InputPluginOutput.class);
+    }
+
+    public static void addPath(String s) throws Exception {
+        File f = new File(s);
+        URL u = f.toURI().toURL();
+        URLClassLoader urlClassLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
+        Class urlClass = URLClassLoader.class;
+        Method method = urlClass.getDeclaredMethod("addURL", new Class[]{URL.class});
+        method.setAccessible(true);
+        method.invoke(urlClassLoader, new Object[]{u});
     }
 }

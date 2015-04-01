@@ -32,7 +32,7 @@ public class InputPlugin extends MessageInput {
     @AssistedInject
     public InputPlugin(MetricRegistry metricRegistry,
                        @Assisted final Configuration configuration,
-                       final InputUDPTransport.Factory transportFactory,
+                       final RandomMessageTransport.Factory transportFactory,
                        final RandomHttpMessageCodec.Factory codecFactory,
                        LocalMetricRegistry localRegistry,
                        Config config,
@@ -52,7 +52,6 @@ public class InputPlugin extends MessageInput {
         @Override
         Descriptor getDescriptor();
 
-        Duration a = Durations.seconds(1);
     }
 
     public static class Descriptor extends MessageInput.Descriptor {
@@ -65,7 +64,7 @@ public class InputPlugin extends MessageInput {
     @ConfigClass
     public static class Config extends MessageInput.Config {
         @Inject
-        public Config(InputUDPTransport.Factory transport, RandomHttpMessageCodec.Factory codec) {
+        public Config(RandomMessageTransport.Factory transport, RandomHttpMessageCodec.Factory codec) {
             super(transport.getConfig(), codec.getConfig());
         }
     }
