@@ -25,7 +25,7 @@ public class SparkProvider implements Provider<JavaStreamingContext> {
             LogManager.getLogger("org.apache.spark").setLevel(Level.ERROR);
             LogManager.getLogger("org.spark-project").setLevel(Level.ERROR);
             SparkConf conf = new SparkConf().setAppName("graylog").setMaster("local[*]");
-            ssc = new JavaStreamingContext(conf, Durations.seconds(1));
+            ssc = new JavaStreamingContext(conf, Durations.seconds(10));
             Runtime.getRuntime().addShutdownHook(
                     new Thread() {
                         @Override

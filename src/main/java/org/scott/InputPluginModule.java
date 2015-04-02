@@ -1,6 +1,8 @@
 package org.scott;
 
 import com.google.inject.TypeLiteral;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.graylog2.plugin.Message;
 import org.graylog2.plugin.PluginConfigBean;
@@ -16,6 +18,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -55,13 +58,14 @@ public class InputPluginModule extends PluginModule {
          * addConfigBeans();
          */
         try {
-            addPath("./plugin/inputplugin-1.0.0-SNAPSHOT.jar");
+            //TODO: Make path relative or add independent classloader
+            addPath("/home/slombard/Documents/graylog/inputplugin/target/inputplugin-1.0.0-SNAPSHOT.jar");
         }
         catch (Exception e) {
             LOG.error("Exception: {}",e);
         }
 
-
+        LogManager.getLogger("org.scott").setLevel(Level.TRACE);
         ClassLoader cl = ClassLoader.getSystemClassLoader();
 
         URL[] urls = ((URLClassLoader)cl).getURLs();
@@ -72,17 +76,9 @@ public class InputPluginModule extends PluginModule {
 
         //LOG.info("test {}", Arrays.toString(Thread.currentThread().getStackTrace()));
 
-        //SparkConf conf;
-        //JavaStreamingContext ssc;
 
-        //SparkContext con = new SparkContext("local[4]","graylog","~/Spark-1.2.1/");
-        //conf = new SparkConf().setAppName("graylog").setMaster("local[*]");
-        //ssc = new JavaStreamingContext(conf, Durations.seconds(1));
-        //ssc.receiverStream()
-        //JavaDStream<String> test = ssc.socketTextStream("localhost",2020);
-        //Receiver<String> a;
         bind(JavaStreamingContext.class).toProvider(SparkProvider.class);
-        bind(new TypeLiteral<ArrayBlockingQueue<Message>>(){}).toProvider(RecieverBufferProvider.class);
+        bind(new TypeLiteral<ArrayBlockingQueue<Map>>(){}).toProvider(RecieverBufferProvider.class);
 
         addInitializer(SparkDriverService.class);
         addMessageInput(InputPlugin.class);

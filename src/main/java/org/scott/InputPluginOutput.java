@@ -50,11 +50,11 @@ public class InputPluginOutput implements MessageOutput  {
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private final SparkDriverService driver;
     private final Configuration configuration;
-    private final ArrayBlockingQueue<Message> messages;
+    private final ArrayBlockingQueue<Map> messages;
 
 
     @AssistedInject
-    public InputPluginOutput(@Assisted Stream stream, @Assisted Configuration config, SparkDriverService sparkDrive, ArrayBlockingQueue<Message> a) throws MessageOutputConfigurationException {
+    public InputPluginOutput(@Assisted Stream stream, @Assisted Configuration config, SparkDriverService sparkDrive, ArrayBlockingQueue<Map> a) throws MessageOutputConfigurationException {
         LOG.info("Initializing");
 
         configuration = config;
@@ -81,24 +81,25 @@ public class InputPluginOutput implements MessageOutput  {
     public void write(Message message) throws Exception {
         //LOG.info("{} {}", configuration.getString("prefix"), message);
         //LOG.info("writing message");
-        ServerSocket serverSocket = null;
-        Socket socket = null;
-        ObjectOutputStream outputStream = null;
+        //ServerSocket serverSocket = null;
+        //Socket socket = null;
+        //ObjectOutputStream outputStream = null;
         try
         {
-            serverSocket = new ServerSocket(45678);
-            socket = serverSocket.accept();
-            Map fields = message.getFields();
-            outputStream = new ObjectOutputStream(socket.getOutputStream());
-            outputStream.writeObject(fields);
-            socket.close();
-            //driver.messages.put(message);
-            //messages.put(message);
-            //driver.writeObject(message);
+            //serverSocket = new ServerSocket(45678);
+            //socket = serverSocket.accept();
+            //Map fields = message.getFields();
+            driver.messages.put(message.getFields());
+            //outputStream = new ObjectOutputStream(socket.getOutputStream());
+            //outputStream.writeObject(fields);
         }
         catch (Exception e)
         {
             LOG.error("{}", e);
+        }
+        finally {
+            //socket.close();
+            //serverSocket.close();
         }
 
 

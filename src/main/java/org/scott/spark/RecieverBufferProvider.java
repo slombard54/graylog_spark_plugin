@@ -10,24 +10,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * Created by slombard on 3/25/15.
  */
 @Singleton
-public class RecieverBufferProvider implements Provider<ArrayBlockingQueue<Message>> {
+public class RecieverBufferProvider implements Provider<ArrayBlockingQueue<Map>> {
     private static final Logger LOG = LoggerFactory.getLogger(RecieverBufferProvider.class);
-    private static ArrayBlockingQueue<Message> messages = null;
+    private static ArrayBlockingQueue<Map> messages = null;
 
     @Inject
     public RecieverBufferProvider() {
         if (messages == null) {
-          messages = new ArrayBlockingQueue<Message>(2048);
+          messages = new ArrayBlockingQueue<>(2048);
         }
     }
     @Override
-    public ArrayBlockingQueue<Message> get() {
+    public ArrayBlockingQueue<Map> get() {
         return messages;
     }
 }

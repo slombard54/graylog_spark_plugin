@@ -1,9 +1,9 @@
 package org.scott;
 
 
-import  org.testng.Assert;
+//import  org.testng.Assert;
 
-import org.testng.annotations.Test;
+//import org.testng.annotations.Test;
 
 import javax.inject.Inject;
 
@@ -16,8 +16,8 @@ public class InputPluginTest {
     @Inject
     private InputPlugin plug;
 
-    @Test
-    public void testingInputPlugin(){
-        Assert.assertTrue(true);
-    }
+    //@Test
+    //public void testingInputPlugin(){
+    //    Assert.assertTrue(true);
+    //}
 }
