@@ -2,31 +2,23 @@ package org.scott.spark;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
-import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.google.inject.name.Named;
-import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.storage.StorageLevel;
-import org.apache.spark.streaming.api.java.JavaDStream;
-import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
-import org.graylog2.plugin.Message;
-import org.joda.time.DateTime;
 import org.scott.Tasks.MessageTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.Tuple2;
 
-import java.io.*;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -113,51 +105,32 @@ public class SparkDriverService extends AbstractExecutionThreadService {
         LOG.info("Spark Streaming Driver shutdown");
     }
 
-    public void writeObject(Object o){
-        try {
-
-        } catch (Exception e){}
-    }
 
     private void send() {
-        ServerSocket serverSocket = null;
-        Socket socket = null;
-        ObjectOutputStream outputStream = null;
-        try {
 
             while (isRunning.get()) {
 
-                try {
-                    if (serverSocket == null){ serverSocket = new ServerSocket(45678);}
-                    if (socket == null) {socket = serverSocket.accept();}
+                try(ServerSocket serverSocket = new ServerSocket(45678);
+                    Socket socket = serverSocket.accept()) {
 
-                    //Map fields = message.getFields();
-                    if (outputStream == null) {outputStream = new ObjectOutputStream(socket.getOutputStream());}
-                    if (messages.isEmpty()){
-                        LOG.debug("Waiting for message to send");
-                        Thread.sleep(1000);
 
-                    }else {
-                        outputStream.writeObject(messages.poll());
-                        LOG.debug("Object writen to stream");
+                    try (ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream())) {
+                        while (isRunning.get()) {
+                            // added sleep to fix issue with socket timing
+                            if (messages.isEmpty()) {
+                                LOG.trace("No messages to send receiver waiting");
+                                Thread.sleep(1000);
+
+                            } else {
+                                outputStream.writeObject(messages.poll());
+                                LOG.trace("Object written to receiver");
+                            }
+                        }
                     }
                 } catch (Exception e) {
-                    LOG.error("*****************{}", e);
-                    socket.close();
-                    serverSocket.close();
-                    socket = null;
-                    serverSocket = null;
-                    outputStream = null;
+                    LOG.error("Message Sender exception", e);
                 }
-
-
             }
-            socket.close();
-            serverSocket.close();
-        } catch (Exception e) {
-            LOG.error("{}", e);
-        }
-
     }
 
 }
