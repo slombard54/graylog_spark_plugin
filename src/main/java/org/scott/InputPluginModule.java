@@ -65,7 +65,7 @@ public class InputPluginModule extends PluginModule {
             LOG.error("Exception: {}",e);
         }
 
-        LogManager.getLogger("org.scott").setLevel(Level.TRACE);
+        LogManager.getLogger("org.scott").setLevel(Level.DEBUG);
         ClassLoader cl = ClassLoader.getSystemClassLoader();
 
         URL[] urls = ((URLClassLoader)cl).getURLs();
