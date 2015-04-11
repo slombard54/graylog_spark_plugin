@@ -6,8 +6,10 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.storage.StorageLevel;
+import org.apache.spark.streaming.StreamingContext;
 import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
+import org.apache.spark.streaming.scheduler.*;
 import org.scott.Tasks.MessageTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,14 +35,16 @@ public class SparkDriverService extends AbstractExecutionThreadService {
     public final ArrayBlockingQueue<Map> messages;
     private Thread messageserver;
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
+    private final AtomicBoolean isRecieverRunning = new AtomicBoolean(false);
 
     @Inject
     public SparkDriverService(JavaStreamingContext context, ArrayBlockingQueue<Map> a) {
-        LOG.info("Get Spark Context from provider");
+        LOG.debug("Get Spark Context from provider");
         ssc = context;
         mt = new MessageTask();
         messages = a;
         isRunning.set(true);
+        isRecieverRunning.set(true);
     }
 
     @Override
@@ -50,59 +54,77 @@ public class SparkDriverService extends AbstractExecutionThreadService {
 
     @Override
     protected void run() throws Exception {
-        LOG.info("Creating Spark Function");
-        // Create the queue through which RDDs can be pushed to
-        // a QueueInputDStream
-        Queue<JavaRDD<Integer>> rddQueue = new LinkedList<>();
-        // Create and push some RDDs into the queue
-        List<Integer> list = Lists.newArrayList();
-        for (int i = 0; i < 1000; i++) {
-            list.add(i);
-        }
 
-        for (int i = 0; i < 30; i++) {
-            rddQueue.add(ssc.sparkContext().parallelize(list));
-
-        }
         messageserver = new Thread()  {
             @Override public void run() {
                 send();
             }
         };
         messageserver.start();
-        LOG.info("{}", messageserver);
-        // Create the QueueInputDStream and use it do some processing
-        //JavaDStream<Integer> inputStream = ssc.queueStream(rddQueue);
-        //mt.sparkrun(inputStream);
+        LOG.debug("{}", messageserver);
 
-        //JavaReceiverInputDStream<Map> messageStream = ssc.receiverStream(new SparkMessageReciever());
+
+        LOG.debug("Creating Receiver Socket Connection");
         JavaReceiverInputDStream<Map> messageStream = ssc.socketStream("localhost", 45678, SparkFunctions.streamToMapConverter, StorageLevel.MEMORY_AND_DISK_SER_2());
+        LOG.debug("Creating Spark Function");
         mt.messageRun(messageStream);
-        LOG.info("Completed Spark Function Creation");
+        LOG.debug("Completed Spark Function Creation");
+
+        ssc.addStreamingListener(new StreamingListener(){
+            @Override
+            public void onReceiverStarted(StreamingListenerReceiverStarted receiverStarted) {
+
+            }
+
+            @Override
+            public void onReceiverError(StreamingListenerReceiverError receiverError) {
+
+            }
+
+            @Override
+            public void onReceiverStopped(StreamingListenerReceiverStopped arg0) {
+                LOG.info("Receiver Stopped");
+                isRecieverRunning.set(false);
+            }
+
+            @Override
+            public void onBatchSubmitted(StreamingListenerBatchSubmitted batchSubmitted) {
+
+            }
+
+            @Override
+            public void onBatchStarted(StreamingListenerBatchStarted batchStarted) {
+
+            }
+
+            @Override
+            public void onBatchCompleted(StreamingListenerBatchCompleted batchCompleted) {
+
+            }
+        });
 
         LOG.info("Start Spark Streaming Context");
         try {
-            //messages.put(new Message("Test Message","test", DateTime.now()));
             ssc.start();
             ssc.awaitTermination();
         } catch (Exception e){
-            LOG.error("Spark Error");
+            LOG.error("Spark Error", e);
             ssc.stop();
         }
-        LOG.info("Start Spark Streaming Context awaitTermination Returned");
+        LOG.debug("Start Spark Streaming Context awaitTermination Returned");
     }
 
     @Override
     protected void triggerShutdown() {
-        LOG.info("Spark Streaming Context Stop");
-        ssc.stop();
+        //LOG.info("Spark Streaming Context Stop");
+        //ssc.stop();
     }
 
     @Override
     protected void shutDown() throws Exception {
         isRunning.set(false);
-        ssc.stop(true);
-        LOG.info("Spark Streaming Driver shutdown");
+        //ssc.stop(true);
+        //LOG.info("Spark Streaming Driver shutdown");
     }
 
 
@@ -115,7 +137,7 @@ public class SparkDriverService extends AbstractExecutionThreadService {
 
 
                     try (ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream())) {
-                        while (isRunning.get()) {
+                        while (isRecieverRunning.get()) {
                             // added sleep to fix issue with socket timing
                             if (messages.isEmpty()) {
                                 LOG.trace("No messages to send receiver waiting");

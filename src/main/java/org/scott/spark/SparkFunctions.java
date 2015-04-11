@@ -37,11 +37,11 @@ public final class SparkFunctions {
                     this.is = is;
                     try {
 
-                        this.os = new ObjectInputStream(is);
+                        this.os = new ObjectInputStream(new BufferedInputStream(is));
 
                     } catch (IOException e) {
 
-                        LOG.error("{}", e);
+                        LOG.error("Object Input Stream IOException", e);
 
                     }
                 }
@@ -54,8 +54,14 @@ public final class SparkFunctions {
                             nextValue = (Map) os.readObject();
 
                         } catch (EOFException e) {
+                            // Error occurs when otherside of connection is close
+                            // happens when shutting down ignore
                             done = true;
-                            LOG.error("{}", e);
+                            //TODO fix exception when shutting down if possible
+                            LOG.trace("EOFException", e);
+                        } catch (Exception e) {
+                            done = true;
+                            LOG.error("Generic Exception", e);
                         }
 
                         if (nextValue == null) {
@@ -63,7 +69,7 @@ public final class SparkFunctions {
                         }
 
                     } catch (Exception e) {
-                        LOG.error("{}", e);
+                        LOG.error("getNext Generic Excpetion", e);
                         throw new RuntimeException(e);
                     }
                     hasNext = true;
@@ -82,7 +88,7 @@ public final class SparkFunctions {
                                         LOG.debug(">>> streamToMapconverter hasNext DONE CLOSING OS");
                                         os.close();
                                     } catch (IOException e) {
-                                        LOG.error("{}", e);
+                                        LOG.error("hasNext IOException", e);
                                         throw new RuntimeException(e);
                                     }
                                 }
@@ -96,6 +102,7 @@ public final class SparkFunctions {
                 public Map next()
                 {
                     if (done) {
+                        LOG.debug("steamToMapConverter End of InputStream");
                         throw new NoSuchElementException("End of InputStream");
                     }
                     if (!hasNext) {

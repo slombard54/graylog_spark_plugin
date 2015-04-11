@@ -24,14 +24,15 @@ public class SparkProvider implements Provider<JavaStreamingContext> {
             LOG.info("Creating Spark Context");
             LogManager.getLogger("org.apache.spark").setLevel(Level.ERROR);
             LogManager.getLogger("org.spark-project").setLevel(Level.ERROR);
+            LogManager.getLogger("akka.remote").setLevel(Level.ERROR);
             SparkConf conf = new SparkConf().setAppName("graylog").setMaster("local[*]");
             ssc = new JavaStreamingContext(conf, Durations.seconds(10));
             Runtime.getRuntime().addShutdownHook(
                     new Thread() {
                         @Override
                                 public void run() {
-                            LOG.info("streaming context stopped");
-                            ssc.stop();
+                            LOG.debug("Spark streaming context ShutdownHook Called");
+                            ssc.stop(true, true);
                         }
                     });
         }

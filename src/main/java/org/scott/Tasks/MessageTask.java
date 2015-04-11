@@ -4,6 +4,8 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.streaming.Duration;
+import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.slf4j.Logger;
@@ -21,7 +23,16 @@ public class MessageTask implements Serializable {
 
 
     public void messageRun(JavaDStream<Map> inStream) {
-        inStream.print();
+
+
+            //JavaDStream<Map> winStream = inStream.window(Durations.seconds(20));
+            inStream.print();
+            //winStream.print();
+            //System.out.print("This is a test!");
+            //LOG.info("messageRun funtions ran.");
+
+            //inStream.map()
+
     }
 
 }
